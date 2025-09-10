@@ -1,0 +1,10 @@
+.venv
+venv
+biblioteca.db
+.env
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
