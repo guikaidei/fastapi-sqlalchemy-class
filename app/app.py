@@ -1,23 +1,51 @@
-from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session
-from database.database import SessionLocal
-from repositories.author_repository import AuthorRepository
-from entities.author import Author
-from models.author_model import AuthorModel
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import os
+import glob
+from importlib import import_module
 
-app = FastAPI()
+app = FastAPI(
+    title="Documentação da API de livros e autores da Trilha da Insper Jr",
+    description="Essa é uma API para gerenciar livros e autores, permitindo operações CRUD e o gerenciamento do relacionamento entre eles.",
+    version="1.0.0",
+    contact={
+        "name": "Guilherme Kaidei",
+        "url": "https://blablabla.com",
+        "email": "guik@insperjr.com",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+)
 
-def get_db():
-    db = SessionLocal()
+
+@app.get("/")
+def test():
+    return {"status": "OK v2 (3)"}
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+working_directory = os.path.dirname(os.path.abspath(__file__))
+use_cases_directory = os.path.join(working_directory, "use_cases")
+routes = glob.glob(os.path.join(use_cases_directory, "**/index.py"), recursive=True)
+
+for route in routes:
+    relative_path = os.path.relpath(route, working_directory)
+    module_name = os.path.splitext(relative_path)[0].replace(os.path.sep, '.')
+
     try:
-        yield db
-    finally:
-        db.close()
+        print(f"Importing module: {module_name}")
+        module = import_module(module_name)
+        if hasattr(module, 'router'):
+            app.include_router(module.router)
+    except ModuleNotFoundError as e:
+        print(f"Erro ao importar módulo {module_name}: {e}")
 
-@app.post("/authors/", response_model=Author)
-def create_author(author: Author, db: Session = Depends(get_db)):
-    repo = AuthorRepository(db)
-    # Lógica de criação
-    author_model = AuthorModel(name=author.name, email=author.email)
-    created_author = repo.add(author_model)
-    return created_author

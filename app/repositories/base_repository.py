@@ -31,3 +31,4 @@ class BaseRepository(Generic[T]):
         if entity:
             self.session.delete(entity)
             self.session.commit()
+            return entity
